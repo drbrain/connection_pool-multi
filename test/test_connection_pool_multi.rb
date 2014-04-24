@@ -5,7 +5,10 @@ require 'connection_pool/multi'
 class TestConnectionPoolMulti < Minitest::Test
 
   class NetworkConnection
-    def initialize
+    attr_reader :host
+
+    def initialize host = nil
+      @host = host
       @x = 0
     end
 
@@ -43,9 +46,9 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def use_pool(pool, size)
-    Array.new(size) do
+    size.times.map do
       Thread.new do
-        pool.with do sleep end
+        pool.with 'a.example' do sleep end
       end
     end.each do |thread|
       Thread.pass until thread.status == 'sleep'
@@ -140,14 +143,14 @@ class TestConnectionPoolMulti < Minitest::Test
   def test_checkout_nested
     recorder = Recorder.new
     pool = ConnectionPool::Multi.new(size: 1) { recorder }
-    pool.with do |r_outer|
+    pool.with 'a.example' do |r_outer|
       @other = Thread.new do |t|
-        pool.with do |r_other|
+        pool.with 'a.example' do |r_other|
           r_other.do_work('other')
         end
       end
 
-      pool.with do |r_inner|
+      pool.with 'a.example' do |r_inner|
         r_inner.do_work('inner')
       end
 
@@ -183,7 +186,7 @@ class TestConnectionPoolMulti < Minitest::Test
     pool = ConnectionPool::Multi.new(timeout: 0, size: 1) { NetworkConnection.new }
 
     thread = Thread.new do
-      pool.with do |net|
+      pool.with 'a.example' do |net|
         net.do_something
         sleep 0.01
       end
@@ -223,7 +226,7 @@ class TestConnectionPoolMulti < Minitest::Test
 
     use_pool pool, 3
 
-    pool.checkout
+    pool.checkout connection_args: 'a.example'
 
     pool.shutdown do |recorder|
       recorder.do_work("shutdown")
@@ -239,9 +242,9 @@ class TestConnectionPoolMulti < Minitest::Test
   def test_threading_basic
     pool = ConnectionPool::Multi.new(size: 5) { NetworkConnection.new }
 
-    threads = Array.new(15) do
+    threads = 15.times.map do
       Thread.new do
-        pool.with do |net|
+        pool.with 'a.example' do |net|
           net.do_something
         end
       end
@@ -257,9 +260,9 @@ class TestConnectionPoolMulti < Minitest::Test
   def test_threading_heavy
     pool = ConnectionPool::Multi.new(timeout: 0.5, size: 3) { NetworkConnection.new }
 
-    threads = Array.new(20) do
+    threads = 15.times.map do
       Thread.new do
-        pool.with do |net|
+        pool.with 'a.example' do |net|
           sleep 0.01
         end
       end
@@ -271,7 +274,7 @@ class TestConnectionPoolMulti < Minitest::Test
   def test_timeout
     pool = ConnectionPool::Multi.new(timeout: 0, size: 1) { NetworkConnection.new }
     thread = Thread.new do
-      pool.with do |net|
+      pool.with 'a.example' do |net|
         net.do_something
         sleep 0.01
       end
@@ -280,19 +283,19 @@ class TestConnectionPoolMulti < Minitest::Test
     Thread.pass while thread.status == 'run'
 
     assert_raises Timeout::Error do
-      pool.with { |net| net.do_something }
+      pool.with 'a.example' do |net| net.do_something end
     end
 
     thread.join
 
-    pool.with do |conn|
+    pool.with 'a.example' do |conn|
       refute_nil conn
     end
   end
 
   def test_with
     pool = ConnectionPool::Multi.new(timeout: 0.1, size: 1) { NetworkConnection.new }
-    result = pool.with do |net|
+    result = pool.with 'a.example' do |net|
       net.fast
     end
     assert_equal 1, result
@@ -302,7 +305,7 @@ class TestConnectionPoolMulti < Minitest::Test
     pool = ConnectionPool::Multi.new(size: 5) { NetworkConnection.new }
 
     ids = 10.times.map do
-      pool.with { |c| c.object_id }
+      pool.with 'a.example' do |c| c.object_id end
     end
 
     assert_equal 1, ids.uniq.size
@@ -311,7 +314,7 @@ class TestConnectionPoolMulti < Minitest::Test
   def test_with_timeout
     pool = ConnectionPool::Multi.new(timeout: 0, size: 1) { Object.new }
 
-    pool.with do
+    pool.with 'a.example' do
       assert_raises Timeout::Error do
         Thread.new { pool.checkout }.join
       end
@@ -324,7 +327,7 @@ class TestConnectionPoolMulti < Minitest::Test
     pool = ConnectionPool::Multi.new(timeout: 0, size: 1) { NetworkConnection.new }
 
     t = Thread.new do
-      pool.with do |net|
+      pool.with 'a.example' do |net|
         net.do_something
         sleep 0.01
       end
@@ -333,10 +336,10 @@ class TestConnectionPoolMulti < Minitest::Test
     Thread.pass while t.status == 'run'
 
     assert_raises Timeout::Error do
-      pool.with { |net| net.do_something }
+      pool.with 'a.example' do |net| net.do_something end
     end
 
-    pool.with(timeout: 0.1) do |conn|
+    pool.with 'a.example', timeout: 0.1 do |conn|
       refute_nil conn
     end
   end

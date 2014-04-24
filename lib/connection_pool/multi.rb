@@ -14,8 +14,11 @@ class ConnectionPool::Multi
     @key = :"current-#{@available.object_id}"
   end
 
-  def with options = {}
+  def with connection_args, options = {}
+    options[:connection_args] = connection_args
+
     conn = checkout options
+
     begin
       yield conn
     ensure
@@ -24,16 +27,17 @@ class ConnectionPool::Multi
   end
 
   def checkout options = {}
-    stack = Thread.current[@key] ||= []
+    connection_args = options[:connection_args]
+    stack           = Thread.current[@key] ||= []
 
     if stack.empty? then
-      timeout = options[:timeout] || @timeout
-      conn = @available.pop timeout: timeout
+      options[:timeout] ||= @timeout
+      conn = @available.pop options
     else
-      conn = stack.last
+      conn, connection_args = stack.last
     end
 
-    stack.push conn
+    stack.push [conn, connection_args]
 
     conn
   end
@@ -44,9 +48,9 @@ class ConnectionPool::Multi
     raise ConnectionPool::Error, 'no connections are checked out' if
       !stack || stack.empty?
 
-    conn = stack.pop
+    conn, connection_args = stack.pop
 
-    @available << conn if stack.empty?
+    @available.push conn, connection_args: connection_args if stack.empty?
 
     nil
   end
