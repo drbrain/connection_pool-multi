@@ -59,7 +59,10 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_checkin
-    pool = ConnectionPool::Multi.new(timeout: 0, size: 1) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new timeout: 0, size: 1 do
+      NetworkConnection.new
+    end
+
     conn = pool.checkout
 
     t1 = Thread.new do
@@ -120,7 +123,9 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_checkout
-    pool = ConnectionPool::Multi.new(size: 1) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new size: 1 do
+      NetworkConnection.new
+    end
 
     conn = pool.checkout
 
@@ -130,7 +135,10 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_checkout_multithread
-    pool = ConnectionPool::Multi.new(size: 2) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new size: 2 do
+      NetworkConnection.new
+    end
+
     conn = pool.checkout
 
     t = Thread.new do
@@ -183,7 +191,9 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_checkout_timeout_override
-    pool = ConnectionPool::Multi.new(timeout: 0, size: 1) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new timeout: 0, size: 1 do
+      NetworkConnection.new
+    end
 
     thread = Thread.new do
       pool.with 'a.example' do |net|
@@ -240,7 +250,9 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_threading_basic
-    pool = ConnectionPool::Multi.new(size: 5) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new size: 5 do
+      NetworkConnection.new
+    end
 
     threads = 15.times.map do
       Thread.new do
@@ -258,7 +270,9 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_threading_heavy
-    pool = ConnectionPool::Multi.new(timeout: 0.5, size: 3) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new timeout: 0.5, size: 3 do
+      NetworkConnection.new
+    end
 
     threads = 15.times.map do
       Thread.new do
@@ -272,7 +286,10 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_timeout
-    pool = ConnectionPool::Multi.new(timeout: 0, size: 1) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new timeout: 0, size: 1 do
+      NetworkConnection.new
+    end
+
     thread = Thread.new do
       pool.with 'a.example' do |net|
         net.do_something
@@ -294,7 +311,10 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_with
-    pool = ConnectionPool::Multi.new(timeout: 0.1, size: 1) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new timeout: 0.1, size: 1 do
+      NetworkConnection.new
+    end
+
     result = pool.with 'a.example' do |net|
       net.fast
     end
@@ -302,7 +322,9 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_with_reuse
-    pool = ConnectionPool::Multi.new(size: 5) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new size: 5 do
+      NetworkConnection.new
+    end
 
     ids = 10.times.map do
       pool.with 'a.example' do |c| c.object_id end
@@ -324,7 +346,9 @@ class TestConnectionPoolMulti < Minitest::Test
   end
 
   def test_with_timeout_override
-    pool = ConnectionPool::Multi.new(timeout: 0, size: 1) { NetworkConnection.new }
+    pool = ConnectionPool::Multi.new timeout: 0, size: 1 do
+      NetworkConnection.new
+    end
 
     t = Thread.new do
       pool.with 'a.example' do |net|
