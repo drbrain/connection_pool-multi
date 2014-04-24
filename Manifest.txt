@@ -6,4 +6,4 @@ Rakefile
 lib/connection_pool/multi.rb
 lib/connection_pool/multi/timed_stack.rb
 test/test_connection_pool_multi.rb
-test/test_connection_pool_timed_stack_multi.rb
+test/test_connection_pool_multi_timed_stack.rb
